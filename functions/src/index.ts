@@ -45,7 +45,30 @@ exports.getAll = functions.https.onRequest(async (request, response) => {
   }
 });
 
-exports.delete= functions.https.onRequest(async (request, response) => {
+
+exports.getOne=functions.https.onRequest(async(request,response)=>{
+  try {
+    const {id}=request.query
+    if(!id){
+      return response.status(400).json({error:"id is required"})
+    }
+    const bData = await admin.firestore().collection("blogs").doc(id).get();
+    if(!bData.exists){
+      return response.status(400).json({error:"data not found"})
+    }
+
+    const singledata={id:bData,...bData.data()}
+    return response.status(200).json(singledata)
+
+  } catch (error) {
+    return response.status(500).json({ error: error });
+    
+  }
+})
+
+
+
+exports.deleteData= functions.https.onRequest(async (request, response) => {
   try {
     const { id } = request.body; // Assuming the request body contains the ID of the document to delete
     if (!id) {
