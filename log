@@ -1,0 +1,86 @@
+exports.create = functions.https.onRequest(async (request, response) => {
+  try {
+    const data = request.body;
+    const blogRef = await admin.firestore().collection("blogs").add(data); // Add data to the "blogs" collection
+    const newData = { ...data, blogId: blogRef.id }; // Include a reference to the blog document
+    await admin.firestore().collection("anotherCollection").add(newData); // Add data with reference to the blog document
+    response.status(200).json({ id: blogRef.id });
+  } catch (error) {
+    response.status(500).json({ error: error });
+  }
+});
+
+exports.getAll = functions.https.onRequest(async (request, response) => {
+  try {
+    const snapshot = await admin.firestore().collection("blogs").get();
+    const blogs = [];
+    for (const doc of snapshot.docs) {
+      const blogData = doc.data();
+      const anotherCollectionSnapshot = await admin.firestore().collection("anotherCollection").where("blogId", "==", doc.id).get(); // Query anotherCollection for documents with matching blogId
+      const anotherCollectionData = anotherCollectionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      blogs.push({ id: doc.id, ...blogData, anotherCollectionData });
+    }
+    response.status(200).json(blogs);
+  } catch (error) {
+    response.status(500).json({ error: error });
+  }
+});
+
+
+exports.create = functions.https.onRequest(async (request, response) => {
+    try {
+      const data = request.body;
+      const blogRef = await admin.firestore().collection("blogs").add(data); // Add data to the "blogs" collection
+      const blogId = blogRef.id; // Get the ID of the newly created blog document
+  
+      // Add a subcollection named "comments" to the newly created blog document
+      const subcollectionName = "comments"; // Change "comments" to the desired subcollection name
+      const subcollectionRef = admin.firestore().collection("blogs").doc(blogId).collection(subcollectionName);
+      
+      // Example: Add a document to the "comments" subcollection
+      await subcollectionRef.add({ text: "Example comment" });
+  
+      response.status(200).json({ id: blogId });
+    } catch (error) {
+      response.status(500).json({ error: error });
+    }
+  });
+  
+
+  exports.addToSubCollection = functions.https.onRequest(async (request, response) => {
+    try {
+      const { id, subCollectionData } = request.body; // Assuming the request body contains the ID of the document and data to add to the sub-collection
+      if (!id) {
+        return response.status(400).json({ error: "Missing ID" });
+      }
+  
+      const subCollectionRef = admin.firestore().collection("blogs").doc(id).collection("subCollection");
+      await subCollectionRef.add(subCollectionData);
+  
+      return response.status(200).json({ message: "Data added to sub-collection successfully" });
+    } catch (error) {
+      return response.status(500).json({ error: error });
+    }
+  });
+  
+  exports.getSubCollectionData = functions.https.onRequest(async (request, response) => {
+    try {
+      const { id } = request.query; // Assuming the request query contains the ID of the document
+      if (!id) {
+        return response.status(400).json({ error: "Missing ID" });
+      }
+  
+      const subCollectionRef = admin.firestore().collection("blogs").doc(id).collection("subCollection");
+      const snapshot = await subCollectionRef.get();
+      const subCollectionData = [];
+  
+      snapshot.forEach((doc) => {
+        subCollectionData.push({ id: doc.id, ...doc.data() });
+      });
+  
+      return response.status(200).json(subCollectionData);
+    } catch (error) {
+      return response.status(500).json({ error: error });
+    }
+  });
+  

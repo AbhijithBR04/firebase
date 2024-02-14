@@ -80,3 +80,20 @@ exports.deleteData = functions.https.onRequest(async (request, response) => {
     return response.status(500).json({ error: error });
   }
 });
+
+//to add data to existing user by creating new collection with help of id passed onto body
+exports.addToSubCollection = functions.https.onRequest(async (request, response) => {
+  try {
+    const { id, subCollectionData } = request.body; // enter the ID once the first data is created and data to add to the sub-collection
+    if (!id) {
+      return response.status(400).json({ error: "Missing ID" });
+    }
+
+    const subCollectionRef = admin.firestore().collection("blogs").doc(id).collection("subCollection");
+    await subCollectionRef.add(subCollectionData);
+
+    return response.status(200).json({ message: "Data added to sub-collection successfully" });
+  } catch (error) {
+    return response.status(500).json({ error: error });
+  }
+});
