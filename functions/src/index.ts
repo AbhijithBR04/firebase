@@ -11,8 +11,8 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
 exports.create = functions.https.onRequest(async (request, response) => {
   try {
     const data = request.body;
-    const result = await admin.firestore().collection("blogs").add(data); //in the collections add a new collection called "blogs" and add data to the collection
-    response.status(200).json({ id: result.id });
+    const result = await admin.firestore().collection("Blogs").add(data); //in the collections add a new collection called "blogs" and add data to the collection
+    response.status(200).json({ id: result.id,message:"Account created successfully" });
   } catch (error) {
     response.status(500).json({ error: error });
   }
@@ -24,10 +24,10 @@ exports.create = functions.https.onRequest(async (request, response) => {
 exports.update = functions.https.onRequest((request, response) => {
   try {
     const { id, ...data } = request.body;
-    const result = admin.firestore().collection("blogs").doc(id).update(data); //doc is to find the id inorder to update
+    const result = admin.firestore().collection("Blogs").doc(id).update(data); //doc is to find the id inorder to update
     return response
       .status(200)
-      .json({ message: "data updated successfully", result });
+      .json({ message: "Account details updated successfully", result });
   } catch (error) {
     return response.status(500).json({ error: error });
   }
@@ -35,24 +35,26 @@ exports.update = functions.https.onRequest((request, response) => {
 
 exports.getAll = functions.https.onRequest(async (request, response) => {
   try {
-    const snapshot = await admin.firestore().collection("blogs").get();
-    const blogs= [];
+    const snapshot = await admin.firestore().collection("Blogs").get();
+    const accounts= [];
     snapshot.forEach((doc) => {
-      blogs.push({ id: doc.id, ...doc.data() });
+      accounts.push({ id: doc.id, ...doc.data() });
     });
-    return response.status(200).json(blogs);
+    return response.status(200).json({mesage:"All accounts",accounts});
   } catch (error) {
     return response.status(500).json({ error: error });
   }
 });
 
+
+//get individual account using firebase id on params
 exports.getOne = functions.https.onRequest(async (request, response) => {
   try {
     const { id } = request.query;
     if (!id) {
       return response.status(400).json({ error: "id is required" });
     }
-    const bData = await admin.firestore().collection("blogs").doc(id).get();
+    const bData = await admin.firestore().collection("Blogs").doc(id).get();
     if (!bData.exists) {
       return response.status(400).json({ error: "data not found" });
     }
@@ -64,6 +66,8 @@ exports.getOne = functions.https.onRequest(async (request, response) => {
   }
 });
 
+
+//delete individual account using firebase id on body
 exports.deleteData = functions.https.onRequest(async (request, response) => {
   try {
     const { id } = request.body; // Assuming the request body contains the ID of the document to delete
@@ -71,11 +75,11 @@ exports.deleteData = functions.https.onRequest(async (request, response) => {
       return response.status(400).json({ error: "Missing  ID" });
     }
 
-    await admin.firestore().collection("blogs").doc(id).delete();
+    await admin.firestore().collection("Blogs").doc(id).delete();
 
     return response
       .status(200)
-      .json({ message: "Document deleted successfully" });
+      .json({ message: "Data deleted successfully" });
   } catch (error) {
     return response.status(500).json({ error: error });
   }
@@ -89,10 +93,34 @@ exports.addToSubCollection = functions.https.onRequest(async (request, response)
       return response.status(400).json({ error: "Missing ID" });
     }
 
-    const subCollectionRef = admin.firestore().collection("blogs").doc(id).collection("subCollection");
+    const subCollectionRef = admin.firestore().collection("Blogs").doc(id).collection("User Blogs");
     await subCollectionRef.add(subCollectionData);
 
     return response.status(200).json({ message: "Data added to sub-collection successfully" });
+  } catch (error) {
+    return response.status(500).json({ error: error });
+  }
+});
+
+
+
+//give the original user id on params to get the sub-collection data (User blogs) of that particular user
+exports.getSubCollectionData = functions.https.onRequest(async (request, response) => {
+  try {
+    const { id } = request.query; // Assuming the request query contains the ID of the document
+    if (!id) {
+      return response.status(400).json({ error: "Missing ID" });
+    }
+
+    const subCollectionRef = admin.firestore().collection("Blogs").doc(id).collection("User Blogs");
+    const snapshot = await subCollectionRef.get();
+    const subCollectionData = [];
+
+    snapshot.forEach((doc) => {
+      subCollectionData.push({ id: doc.id, ...doc.data() });
+    });
+
+    return response.status(200).json(subCollectionData);
   } catch (error) {
     return response.status(500).json({ error: error });
   }
